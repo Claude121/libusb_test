@@ -1,25 +1,26 @@
-INCLUDES := \
-	-I. \
-	-I../include \
-	-I$(SYSROOT)/usr/include/libusb-1.0 \
+LIBUSBROOT ?= ~/Workdir/libusb/libusb
 
-CC=gcc
+INCLUDES := \
+	-I . \
+	-I ../include \
+	-I $(LIBUSBROOT)/libusb
+
+CROSS_COMPILE:=arm-linux-gnueabihf-
+CC=$(CROSS_COMPILE)gcc
 CC_FLAG=-Wall
-LIB:=-lusb-1.0
+LIB:=-L $(LIBUSBROOT)/libusb/.libs -lusb-1.0
   
 PRG:=prog
 OBJ:=libusb.o
    
 $(PRG):$(OBJ)
-	@$(CC) $(INC) -o $@ $(OBJ) $(LIB)
+	$(CC) $(INC) -o $@ $(OBJ) $(LIB)
 			
 .SUFFIXES: .c .o .cpp
 .cpp.o:
-	@echo "Compiling......"
 	@$(CC) $(CC_FLAG) $(INCLUDES) -c $*.cpp -o $*.o
 		 
 .c.o:
-	@echo "Compiling......"
 	@$(CC) $(CC_FLAG) $(INCLUDES) -c $*.c -o $*.o
 
 .PRONY:clean

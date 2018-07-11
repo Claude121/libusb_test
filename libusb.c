@@ -36,12 +36,12 @@ void __attribute__((destructor))test_exit()
 int main(int argc,char **argv)
 {
     DBG("Enter LibUSB Test APP\n");
-    ssize_t i;
-    ssize_t cnt;
+    int i;
+    long cnt;
     libusb_device **devs;
     libusb_context *ctx = NULL;
 
-    libusb_set_debug(ctx, 3);
+    libusb_set_option(ctx, 3);
     cnt = libusb_get_device_list(ctx, &devs);
     if(cnt < 0) {  
         DBG("Get Device Error %s\n",libusb_strerror(cnt)); 
@@ -57,7 +57,7 @@ int main(int argc,char **argv)
 
 void printdev(libusb_device *dev)
 {
-    int s32Ret = 0;
+    int s32Ret = 0,i = 0,j = 0,k = 0;
     struct libusb_device_descriptor desc;
     struct libusb_config_descriptor *config;
     const struct libusb_interface *inter;
@@ -78,15 +78,15 @@ void printdev(libusb_device *dev)
     libusb_get_config_descriptor(dev, 0, &config);
     LOG("Interfaces: %d ||| ",(int)config->bNumInterfaces);
 
-    for(int i=0; i<(int)config->bNumInterfaces; i++) {
+    for(i=0; i<(int)config->bNumInterfaces; i++) {
         inter = &config->interface[i];
         LOG("Num of alt settings: %d | ",inter->num_altsetting);
-        for(int j=0; j<inter->num_altsetting; j++) {
+        for(j=0; j<inter->num_altsetting; j++) {
             interdesc = &inter->altsetting[j];
             LOG("Interface Numer: %d | ",(int)interdesc->bInterfaceNumber);
             LOG("Number of endpoints: %d | ",(int)interdesc->bNumEndpoints);
  
-            for(int k=0; k<(int)interdesc->bNumEndpoints; k++) {
+            for(k=0; k<(int)interdesc->bNumEndpoints; k++) {
                 epdesc = &interdesc->endpoint[k];
                 LOG("Descriptor Type: %d | ",(int)epdesc->bDescriptorType);
                 LOG("EP Address: %d | ",(int)epdesc->bEndpointAddress);

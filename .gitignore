@@ -1,0 +1,5 @@
+.*
+*.o
+*swp
+*swm
+prog
