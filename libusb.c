@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <libusb.h>
+#include <stdbool.h>
 
 static int dbg_enable=1;
 #define DBG(fmt, args...) \
@@ -14,15 +15,17 @@ typedef struct {
     char name[10];
 } deviceBootInfo_t;
 
-static int initialized;
+static bool initialized;
+struct libusb_device **devs;
+struct libusb_context *ctx = NULL;
 void printdev(libusb_device *dev);
 
 void __attribute__((constructor))test_init()
 {
     DBG("\n");
-    initialized = !libusb_init(NULL);
-    if(initialized<0){
-        DBG(" error\n");
+    initialized = !libusb_init(&ctx);
+    if(!initialized){
+        DBG("Error\n");
         exit(0);
     }
 }
@@ -30,7 +33,7 @@ void __attribute__((destructor))test_exit()
 {
     DBG("\n");
     if(initialized)
-        libusb_exit(NULL);
+        libusb_exit(ctx);
 }
 
 int main(int argc,char **argv)
@@ -38,11 +41,9 @@ int main(int argc,char **argv)
     DBG("Enter LibUSB Test APP\n");
     int i;
     long cnt;
-    libusb_device **devs;
-    libusb_context *ctx = NULL;
 
-    libusb_set_option(ctx, 3);
-    cnt = libusb_get_device_list(ctx, &devs);
+    libusb_set_option(ctx, LIBUSB_OPTION_LOG_LEVEL,LIBUSB_LOG_LEVEL_INFO);
+    cnt = libusb_get_device_list(NULL, &devs);
     if(cnt < 0) {  
         DBG("Get Device Error %s\n",libusb_strerror(cnt)); 
     }  

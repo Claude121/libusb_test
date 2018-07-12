@@ -5,16 +5,17 @@ INCLUDES := \
 	-I ../include \
 	-I $(LIBUSBROOT)/libusb
 
-CROSS_COMPILE:=arm-linux-gnueabihf-
-CC=$(CROSS_COMPILE)gcc
-CC_FLAG=-Wall
-LIB:=-L $(LIBUSBROOT)/libusb/.libs -lusb-1.0
+CROSS_COMPILE := arm-linux-gnueabihf-
+CC = $(CROSS_COMPILE)gcc
+CC_FLAG =-Wall -o2
+LDFLAGS =-static
+LIB:=-L $(LIBUSBROOT)/libusb/.libs -lusb-1.0 -lpthread
   
 PRG:=prog
 OBJ:=libusb.o
    
 $(PRG):$(OBJ)
-	$(CC) $(INC) -o $@ $(OBJ) $(LIB)
+	$(CC) $(LDFLAGS) $(INC) -o $@ $(OBJ) $(LIB)
 			
 .SUFFIXES: .c .o .cpp
 .cpp.o:

@@ -7,4 +7,5 @@
      make install
 3. make test 
    set CROSS_COMPILE & LIBUSBROOT
-   
+4. File System necessary
+   suport usb fs system (linux)
