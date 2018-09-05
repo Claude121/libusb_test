@@ -12,7 +12,7 @@ LDFLAGS =-static
 LIB:=-L $(LIBUSBROOT)/libusb/.libs -lusb-1.0 -lpthread
   
 PRG:=prog
-OBJ:=libusb.o
+OBJ:=main.o libusb_test.o
    
 $(PRG):$(OBJ)
 	$(CC) $(LDFLAGS) $(INC) -o $@ $(OBJ) $(LIB)

@@ -2,4 +2,6 @@
 *.o
 *swp
 *swm
+core
+tags
 prog
