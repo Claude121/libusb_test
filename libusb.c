@@ -47,7 +47,7 @@ int main(int argc,char **argv)
     if(cnt < 0) {  
         DBG("Get Device Error %s\n",libusb_strerror(cnt)); 
     }  
-    DBG(" %ld Devices in list.",cnt);
+    DBG(" %ld Devices in list.\n\n",cnt);
    
     for(i = 0; i < cnt; i++) {  
         printdev(devs[i]);
@@ -71,26 +71,27 @@ void printdev(libusb_device *dev)
         return;
     }
 
-    LOG("Device Class:  %4d \n",(int)desc.bDeviceClass);
-    LOG("VendorID:      %4d \n",desc.idVendor);
-    LOG("ProductID:     %4d\n",desc.idProduct);
-    LOG("Num of possible configs: %4d \n",(int)desc.bNumConfigurations);
+    LOG("\n------------ Device Specific ------------ \n\n");
+    LOG(" %-9s  %-8s  %-9s %-9s\n","Dev Class","VendorId","ProductId","ConfigNum");
+    LOG(" %-9d  %-8d  %-9d %-9d\n",(int)desc.bDeviceClass,desc.idVendor,desc.idProduct,(int)desc.bNumConfigurations);
 
     libusb_get_config_descriptor(dev, 0, &config);
-    LOG("Interfaces: %d ||| ",(int)config->bNumInterfaces);
+
+    LOG("\n------------ Class Specific ------------- \n\n");
+    LOG(" Interfaces: %d \n",(int)config->bNumInterfaces);
 
     for(i=0; i<(int)config->bNumInterfaces; i++) {
         inter = &config->interface[i];
-        LOG("Num of alt settings: %d | ",inter->num_altsetting);
+        LOG("  Num of alt settings:  %d \n\n",inter->num_altsetting);
         for(j=0; j<inter->num_altsetting; j++) {
             interdesc = &inter->altsetting[j];
-            LOG("Interface Numer: %d | ",(int)interdesc->bInterfaceNumber);
-            LOG("Number of endpoints: %d | ",(int)interdesc->bNumEndpoints);
+            LOG("   Interface Numer    :  %d \n",(int)interdesc->bInterfaceNumber);
+            LOG("   Number of endpoints:  %d \n\n",(int)interdesc->bNumEndpoints);
  
             for(k=0; k<(int)interdesc->bNumEndpoints; k++) {
                 epdesc = &interdesc->endpoint[k];
-                LOG("Descriptor Type: %d | ",(int)epdesc->bDescriptorType);
-                LOG("EP Address: %d | ",(int)epdesc->bEndpointAddress);
+                LOG("       EP Address     :  0x%x \n",(int)epdesc->bEndpointAddress);
+                LOG("       Descriptor Type:  0x%x \n\n",(int)epdesc->bDescriptorType);
             }
         }
         LOG("\n");
