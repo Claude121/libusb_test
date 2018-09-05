@@ -13,8 +13,6 @@ int main(int argc,char **argv)
 {
 	ExecFunc(libusb_test_device_open(),0);
 
-    libusb_test_print_all_dev();
-
 	libusb_test_device_close();
     return 0;  
 }

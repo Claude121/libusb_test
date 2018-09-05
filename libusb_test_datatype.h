@@ -35,7 +35,7 @@ typedef enum
     {printf(ASCII_COLOR_BLUE"<<<%s[%d] \n" ASCII_COLOR_END,__FUNCTION__,__LINE__);}}while(0);})
 
 #define LOG(fmt, args...) \
-    ({do{if(dbg_enable){printf(fmt,##args);}}while(0);})
+    ({do{if(dbg_enable && debug_level>=DBG_INFO){printf(fmt,##args);}}while(0);})
 
 #define LIBUSB_CHECK(action) \
 do { \

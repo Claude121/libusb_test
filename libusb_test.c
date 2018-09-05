@@ -19,8 +19,9 @@ struct libusb_device_handle *devh = NULL;
 
 deviceBootInfo_t devinfo;
 int endpoint_d2h = 0, endpoint_h2d = 0;
+int payload_d2h = 0, payload_h2d = 0;
 
-static void libusb_test_printdev(libusb_device *dev)
+static void libusb_test_inquiry_per_dev(libusb_device *dev)
 {
     int s32Ret = 0,i = 0,j = 0,k = 0;
     struct libusb_device_descriptor desc;
@@ -63,7 +64,7 @@ static void libusb_test_printdev(libusb_device *dev)
     libusb_free_config_descriptor(config);
 }
 
-void libusb_test_print_all_dev(void)
+void libusb_test_inquiry_dev(void)
 {
     DEBUG("\n");
     int i;
@@ -77,10 +78,84 @@ void libusb_test_print_all_dev(void)
     LOG(" Total %ld Devices in list.\n\n",cnt);
    
     for(i = 0; i < cnt; i++) {  
-        libusb_test_printdev(devs[i]);
+        libusb_test_inquiry_per_dev(devs[i]);
     }  
     LOG("\n========================================================== \n\n");
     libusb_free_device_list(devs, 1);
+}
+
+static int libusb_test_get_endpoint_info()
+{
+    DEBUG("\n");
+    int n;
+    long cnt;
+
+    if(devinfo.vid == 0 ||devinfo.pid == 0)
+	{
+        ERR("Please Exec libusb_test_device_open First\n"); 
+		return -1;
+	}
+
+    cnt = libusb_get_device_list(NULL, &devs);
+    if(cnt < 0) {  
+        ERR("Get Device Error %s\n",libusb_strerror(cnt)); 
+		return -1;
+    }  
+   
+    for(n = 0; n < cnt; n++)
+    {
+        int s32Ret = 0,i = 0,j = 0,k = 0;
+        struct libusb_device_descriptor desc;
+        struct libusb_config_descriptor *config;
+        const struct libusb_interface *inter;
+        const struct libusb_interface_descriptor *interdesc;
+        const struct libusb_endpoint_descriptor *epdesc;
+
+        s32Ret = libusb_get_device_descriptor(devs[n], &desc);
+        if (s32Ret < 0) {
+            DEBUG("failed to get device descriptor:%s\n",libusb_strerror(s32Ret));
+            return -1;
+        }
+
+        if(desc.idVendor != devinfo.vid || desc.idProduct != devinfo.pid)
+            continue;
+
+        libusb_get_config_descriptor(devs[n], 0, &config);
+
+        for(i=0; i<(int)config->bNumInterfaces; i++) {
+            inter = &config->interface[i];
+            for(j=0; j<inter->num_altsetting; j++) {
+                interdesc = &inter->altsetting[j];
+                for(k=0; k<(int)interdesc->bNumEndpoints; k++) {
+                    epdesc = &interdesc->endpoint[k];
+                    if ((epdesc->bmAttributes & 0x03) != LIBUSB_TRANSFER_TYPE_BULK)
+                        continue;
+
+              		if (epdesc->bEndpointAddress & 0x80)
+              		{
+                		endpoint_d2h = epdesc->bEndpointAddress;
+                		payload_d2h = epdesc->wMaxPacketSize;
+              		}
+              		else
+              		{
+                		endpoint_h2d = epdesc->bEndpointAddress;
+                		payload_h2d = epdesc->wMaxPacketSize;
+              		}
+                }
+            }
+        }
+        libusb_free_config_descriptor(config);
+    }
+    if (endpoint_d2h == 0 || endpoint_h2d == 0)
+    {
+        ERR("Interface is not complete.\n");
+        return -1;
+    }
+
+	INFO("bulk in_ep addr: 0x%x packetsize: %d\n",endpoint_d2h,payload_d2h);
+	INFO("bulk out_ep addr: 0x%x packetsize: %d\n",endpoint_h2d,payload_h2d);
+    libusb_free_device_list(devs, 1);
+	return 0;
 }
 
 int libusb_test_device_open(void)
@@ -93,6 +168,10 @@ int libusb_test_device_open(void)
 
     devinfo.vid = VendorId;
     devinfo.pid = ProductId;
+
+	if(libusb_test_get_endpoint_info() < 0) {
+		return -1;
+	}
 
     devh = libusb_open_device_with_vid_pid(ctx, devinfo.vid, devinfo.pid);
     if(devh==NULL) {
