@@ -15,7 +15,8 @@ PRG:=prog
 OBJ:=main.o libusb_test.o
    
 $(PRG):$(OBJ)
-	$(CC) $(LDFLAGS) $(INC) -o $@ $(OBJ) $(LIB)
+	@echo "Linkind Objects ......"
+	@$(CC) $(LDFLAGS) $(INC) -o $@ $(OBJ) $(LIB)
 			
 .SUFFIXES: .c .o .cpp
 .cpp.o:
