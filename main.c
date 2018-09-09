@@ -11,11 +11,13 @@
 
 int main(int argc,char **argv)
 {
+#if 0
+    libusb_test_inquiry_dev();
+#else
 	ExecFunc(libusb_test_device_open(),0);
-//libusb_test_inquiry_dev();
 	libusb_test_dummy_api();
 
 	libusb_test_device_close();
-
+#endif
 	return 0;
 }

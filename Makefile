@@ -2,17 +2,18 @@ LIBUSBROOT ?= ~/Workdir/libusb/libusb
 
 INCLUDES := \
 	-I . \
+	-I ./inc \
 	-I ../include \
 	-I $(LIBUSBROOT)/libusb
 
-CROSS_COMPILE := arm-linux-gnueabihf-
+CROSS_COMPILE :=
 CC = $(CROSS_COMPILE)gcc
 CC_FLAG =-Wall -o2
-LDFLAGS =-static
+LDFLAGS =-dynamic
 LIB:=-L $(LIBUSBROOT)/libusb/.libs -lusb-1.0 -lpthread
   
 PRG:=prog
-OBJ:=main.o libusb_test.o
+OBJ:=main.o src/libusb_test.o src/libusb_boot.o
    
 $(PRG):$(OBJ)
 	@echo "Linkind Objects ......"

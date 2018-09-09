@@ -6,7 +6,7 @@
 int libusb_test_device_open(void);
 void libusb_test_device_close(void);
 void libusb_test_inquiry_dev(void);
-ssize_t libusb_test_bulk_read(void *data, size_t length);
-ssize_t libusb_test_bulk_write(const void *data, size_t length);
+ssize_t libusb_test_bulk_read(void *devh, void *data, size_t length);
+ssize_t libusb_test_bulk_write(void *devh, const void *data, size_t length);
 void libusb_test_dummy_api(void);
 #endif

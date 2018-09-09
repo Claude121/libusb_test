@@ -1,14 +1,21 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <libusb.h>
+#include <libusb-1.0/libusb.h>
 #include <stdbool.h>
 #include <errno.h>
 #include <string.h>
 
 #include "libusb_test.h"
-
+#if 0
 #define VendorId  0x525
 #define ProductId 0xa4a0
+#else
+#define VendorId  0x03e7
+#define ProductId 0x2150
+#endif
+
+#define USB_TIMEOUT (10 * 1000)
+#define USB_MAX_PACKET_SIZE (10 * 1024 * 1024)
 
 bool func_trace = 1;
 static int dbg_enable=1;
@@ -74,7 +81,7 @@ void libusb_test_inquiry_dev(void)
 	DEBUG("\n");
 	int i;
 	long cnt;
-
+libusb_init(NULL);
 	cnt = libusb_get_device_list(NULL, &devs);
 	if(cnt < 0) {
 		ERR("Get Device Error %s\n",libusb_strerror(cnt));
@@ -87,6 +94,7 @@ void libusb_test_inquiry_dev(void)
 	}
 	LOG("\n========================================================== \n\n");
 	libusb_free_device_list(devs, 1);
+libusb_exit(NULL);
 }
 
 static int libusb_test_get_endpoint_info()
@@ -164,13 +172,80 @@ static int libusb_test_get_endpoint_info()
 	return 0;
 }
 
+void libusb_test_dummy_api(void)
+{
+//	libusb_set_configuration(devh,0);
+#if 1
+	char data[4096];
+	int i;
+	memset(data,0x66,4096);
+
+	printf("write ret %d\n",libusb_test_bulk_write(devh, data, 4096));
+
+	printf("read ret %d\n",libusb_test_bulk_read(devh, data, 4096));
+
+	for(i=0;i<512;i++)
+	{
+		if(i%10 == 0)
+			printf("\n");
+
+		printf(" 0x%x ",data[i]);
+	}
+	printf("\n");
+#else
+	libusb_set_interface_alt_setting(devh,0,0);
+#endif
+}
+
+ssize_t libusb_test_bulk_read(void *devh, void *data, size_t length)
+{
+	int tt = 0, ret = 0;
+
+    while(length > 0) {
+        int sz = length, bt;
+
+        if (sz > USB_MAX_PACKET_SIZE)
+            sz = USB_MAX_PACKET_SIZE;
+	    ret = libusb_bulk_transfer(devh, endpoint_d2h, 
+                        (unsigned char *)data, sz, &bt, USB_TIMEOUT);
+	    if(ret < 0)
+		    return ret;
+
+        tt += bt;
+        length -= bt;
+        data = (char*)data + bt;
+    }
+	return tt;
+}
+
+ssize_t libusb_test_bulk_write(void *devh, const void *data, size_t length)
+{
+	int tt = 0, ret = 0;
+
+    while(length > 0) {
+        int sz = length, bt;
+
+        if (sz > USB_MAX_PACKET_SIZE)
+            sz = USB_MAX_PACKET_SIZE;
+	    ret = libusb_bulk_transfer(devh, endpoint_h2d, 
+                        (unsigned char *)data, length, &bt, USB_TIMEOUT);
+	    if(ret < 0)
+		    return ret;
+
+        tt += bt;
+        length -= bt;
+        data = (char*)data + bt;
+    }
+	return tt;
+}
+
 int libusb_test_device_open(void)
 {
 	DEBUG("\n");
 	
 	LIBUSB_CHECK(libusb_init(&ctx));
 
-	libusb_set_option(ctx, LIBUSB_OPTION_LOG_LEVEL,LIBUSB_LOG_LEVEL_INFO);
+	libusb_set_debug(ctx, LIBUSB_LOG_LEVEL_INFO);
 
 	devinfo.vid = VendorId;
 	devinfo.pid = ProductId;
@@ -203,45 +278,3 @@ void libusb_test_device_close(void)
 		libusb_exit(ctx);
 }
 
-void libusb_test_dummy_api(void)
-{
-//	libusb_set_configuration(devh,0);
-#if 1
-	char data[4096];
-	int i;
-	memset(data,0x66,4096);
-
-	printf("write ret %d\n",libusb_test_bulk_write(data,4096));
-
-	printf("read ret %d\n",libusb_test_bulk_read(data,4096));
-
-	for(i=0;i<512;i++)
-	{
-		if(i%10 == 0)
-			printf("\n");
-
-		printf(" 0x%x ",data[i]);
-	}
-	printf("\n");
-#else
-	libusb_set_interface_alt_setting(devh,0,0);
-#endif
-}
-
-ssize_t libusb_test_bulk_read(void *data, size_t length)
-{
-	int transferred, ret;
-	ret = libusb_bulk_transfer(devh, endpoint_d2h, (unsigned char *)data, length, &transferred, 0);
-	if(ret < 0)
-		return ret;
-	return transferred;
-}
-
-ssize_t libusb_test_bulk_write(const void *data, size_t length)
-{
-	int transferred, ret;
-	ret = libusb_bulk_transfer(devh, endpoint_h2d, (unsigned char *)data, length, &transferred, 0);
-	if(ret < 0)
-		return ret;
-	return transferred;
-}
