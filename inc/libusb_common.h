@@ -1,5 +1,5 @@
-#ifndef __LIBUSB_BOOT_H
-#define __LIBUSB_BOOT_H
+#ifndef __LIBUSB_COMMON_H
+#define __LIBUSB_COMMON_H
 
 int usb_find_device(libusb_device **dev, int vid, int pid);
 libusb_device_handle *usb_open_device(libusb_device *dev, uint8_t *in, uint8_t *out);
