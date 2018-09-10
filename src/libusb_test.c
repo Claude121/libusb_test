@@ -16,20 +16,15 @@
 #define ProductId 0x2150
 #endif
 
-#define USB_TIMEOUT (10 * 1000)
-#define USB_MAX_PACKET_SIZE (10 * 1024 * 1024)
-
 bool func_trace = 1;
 static int dbg_enable=1;
 DBG_LEVEL_e debug_level = DBG_ALL;
 
-struct libusb_device **devs;
 struct libusb_device *dev;
-struct libusb_context *ctx = NULL;
 struct libusb_device_handle *devh = NULL; 
 
 deviceBootInfo_t devinfo;
-int endpoint_d2h = 0, endpoint_h2d = 0;
+uint8_t endpoint_d2h = 0, endpoint_h2d = 0;
 int payload_d2h = 0, payload_h2d = 0;
 
 static void libusb_test_inquiry_per_dev(libusb_device *dev)
@@ -84,7 +79,8 @@ void libusb_test_inquiry_dev(void)
 	DEBUG("\n");
 	int i;
 	long cnt;
-libusb_init(NULL);
+    struct libusb_device **devs;
+
 	cnt = libusb_get_device_list(NULL, &devs);
 	if(cnt < 0) {
 		ERR("Get Device Error %s\n",libusb_strerror(cnt));
@@ -97,29 +93,30 @@ libusb_init(NULL);
 	}
 	LOG("\n========================================================== \n\n");
 	libusb_free_device_list(devs, 1);
-libusb_exit(NULL);
 }
 
-#define TEST_SIZE 4096
-void libusb_test_dummy_api(void)
+/* 
+ * mode 1: read event
+ * mode 2: write event
+ * mode 3: write and read event
+ * 
+ * attention:
+ *      mode 3 may failed if read immediately when write done
+ */
+#define TRANSFER_TEST_MODE 3
+#define SIZE 40960
+static void libusb_test_transfer(void)
 {
-//	libusb_set_configuration(devh,0);
-#if 1
-    char *data_r = NULL, *data_w = NULL;
+#if (TRANSFER_TEST_MODE == 1)
+	char *data_r;
 	int i;
-
-    DEBUG("\n");
     
-    data_r = (char*)malloc(TEST_SIZE);
-    data_w = (char*)malloc(TEST_SIZE);
+    data_r = (char*)malloc(SIZE);
 
-	memset(data_w,0x12,TEST_SIZE);
-	memset(data_r,0x34,TEST_SIZE);
+	memset(data_r,0x34,4096);
+	printf("read ret %d\n",usb_bulk_transfer(devh, endpoint_d2h, data_r, SIZE));
 
-	printf("write ret %d\n",libusb_test_bulk_write(devh, data_w, TEST_SIZE));
-	printf("read ret %d\n",libusb_test_bulk_read(devh, data_r, TEST_SIZE));
-
-	for(i=0;i<512;i++)
+	for(i=0;i<5;i++)
 	{
 		if(i%10 == 0)
 			printf("\n");
@@ -127,45 +124,78 @@ void libusb_test_dummy_api(void)
 		printf(" 0x%x ",data_r[i]);
 	}
 	printf("\n");
-#else
-	libusb_set_interface_alt_setting(devh,0,0);
-#endif
     free(data_r);
+#elif (TRANSFER_TEST_MODE == 2)
+	char *data_w;
+    
+    data_w = (char*)malloc(SIZE);
+
+	memset(data_w,0x21,4096);
+	printf("write ret %d\n",usb_bulk_transfer(devh, endpoint_h2d, data_w, SIZE));
     free(data_w);
+#elif (TRANSFER_TEST_MODE == 3)
+	char *data_r, *data_w;
+	int i;
+    
+    data_r = (char*)malloc(SIZE);
+    data_w = (char*)malloc(SIZE);
+
+	memset(data_w,0x21,4096);
+	memset(data_r,0x34,4096);
+
+	printf("write ret %d\n",usb_bulk_transfer(devh, endpoint_h2d, data_r, SIZE));
+    usleep(5 * 1000);
+	printf("read ret %d\n",usb_bulk_transfer(devh, endpoint_d2h, data_r, SIZE));
+
+	for(i=0;i<5;i++)
+	{
+		if(i%10 == 0)
+			printf("\n");
+
+		printf(" 0x%x ",data_r[i]);
+	}
+	printf("\n");
+    free(data_w);
+    free(data_r);
+#endif
 }
 
-ssize_t libusb_test_bulk_read(void *devh, void *data, size_t length)
+int libusb_test_device_read(void *data, ssize_t size)
 {
     if(!devh || !endpoint_d2h)
         return -1;
 
     INFO("endpoint_d2h 0x%x\n", endpoint_d2h);
-	return usb_bulk_transfer(devh, endpoint_d2h, data, length);
+	return usb_bulk_transfer(devh, endpoint_d2h, data, size);
 }
 
-ssize_t libusb_test_bulk_write(void *devh, void *data, size_t length)
+ssize_t libusb_test_bulk_write(void *data, size_t size)
 {
     if(!devh || !endpoint_h2d)
         return -1;
 
     INFO("endpoint_d2h 0x%x\n", endpoint_h2d);
-	return usb_bulk_transfer(devh, endpoint_h2d, data, length);
+	return usb_bulk_transfer(devh, endpoint_h2d, data, size);
 }
 
 int libusb_test_device_open(void)
 {
 	DEBUG("\n");
-    
     int ret = 0;
 	devinfo.vid = VendorId;
 	devinfo.pid = ProductId;
 
-    if((ret = usb_find_device(&dev, devinfo.vid, devinfo.pid))) {
-		ERR("Can't no find such Dev\n");
+    ret = libusb_set_option(NULL, LIBUSB_OPTION_LOG_LEVEL, LIBUSB_LOG_LEVEL_INFO);
+    if(ret < 0)
         return ret;
-    }
-             
-	libusb_set_option(NULL, LIBUSB_OPTION_LOG_LEVEL, LIBUSB_LOG_LEVEL_INFO);
+
+    ret = usb_find_device(&dev, VendorId, ProductId);
+    if(ret < 0)
+        return ret;
+
+    devh = usb_open_device(dev, &endpoint_d2h, &endpoint_h2d);
+    if(devh == NULL)
+        return -EINVAL;
 
     devh = usb_open_device(dev, &endpoint_d2h, &endpoint_h2d);
     if(devh == NULL) {
@@ -181,6 +211,13 @@ void libusb_test_device_close(void)
     if(devh) {
         usb_close_device(devh);
         devh = NULL;
+        endpoint_d2h = 0;
+        endpoint_h2d = 0;
     }
 }
 
+
+int libusb_test_dummy_api()
+{
+    return 0;
+}

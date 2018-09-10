@@ -1,4 +1,4 @@
-LIBUSBROOT ?= ~/Workdir/libusb/libusb
+LIBUSBROOT ?= ~/Code/App/libusb/libusb/
 
 INCLUDES := \
 	-I . \
