@@ -6,14 +6,14 @@ INCLUDES := \
 	-I ../include \
 	-I $(LIBUSBROOT)/libusb
 
-CROSS_COMPILE :=
+CROSS_COMPILE := arm-linux-gnueabihf-
 CC = $(CROSS_COMPILE)gcc
 CC_FLAG =-Wall -o2
-LDFLAGS =-dynamic
+LDFLAGS =-static
 LIB:=-L $(LIBUSBROOT)/libusb/.libs -lusb-1.0 -lpthread
   
 PRG:=prog
-OBJ:=main.o src/libusb_test.o src/libusb_boot.o
+OBJ:=main.o src/libusb_test.o src/libusb_common.o
    
 $(PRG):$(OBJ)
 	@echo "Linkind Objects ......"
